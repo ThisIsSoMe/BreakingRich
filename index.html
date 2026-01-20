@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>富豪模拟器 V7.1 </title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        /* 全局设定 */
+        body,
+        html {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background-color: #050505;
+            color: #e5e5e5;
+            font-family: 'Noto Serif SC', serif;
+        }
+ 
+        .mono {
+            font-family: 'JetBrains+Mono', monospace;
+        }
+ 
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+ 
+        /* 动画 */
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+ 
+        .slide-up {
+            animation: slideUp 0.3s ease-out forwards;
+        }
+ 
+        .pop-in {
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+ 
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+ 
+            to {
+                opacity: 1;
+            }
+        }
+ 
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+ 
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+ 
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+ 
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+ 
+        /* 浮动数值 */
+        @keyframes floatChange {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+ 
+            100% {
+                transform: translateY(-50px) scale(1.1);
+                opacity: 0;
+            }
+        }
+ 
+        .float-anim {
+            animation: floatChange 1.5s ease-out forwards;
+            pointer-events: none;
+            z-index: 50;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+ 
+        /* 结算小票样式 */
+        .receipt-bg {
+            background-color: #fff;
+            background-image: radial-gradient(#eee 1px, transparent 1px);
+            background-size: 10px 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+ 
+        .jagged-edge {
+            background: linear-gradient(-45deg, transparent 8px, #fff 8px), linear-gradient(45deg, transparent 8px, #fff 8px);
+            background-size: 16px 16px;
+            background-repeat: repeat-x;
+            height: 16px;
+            width: 100%;
+        }
+    </style>
+</head>
+ 
+<body class="flex flex-col h-full bg-gray-950">
+ 
+    <!-- 1. 初始化弹窗 -->
+    <div id="initModal"
+        class="fixed inset-0 z-[60] bg-black flex flex-col justify-center px-6 transition-opacity duration-500">
+        <div
+            class="w-full max-w-md mx-auto bg-gray-900 p-6 rounded-2xl border border-gray-800 shadow-2xl space-y-6 relative overflow-hidden">
+            <!-- 装饰光斑 -->
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-yellow-600 rounded-full blur-[50px] opacity-20"></div>
+ 
+            <div class="text-center relative z-10">
+                <h1
+                    class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600 tracking-wider">
+                    欲望都市</h1>
+                <p class="text-xs text-gray-500 mt-2 tracking-[0.2em] uppercase">Wealth & Desire Simulator V7.1</p>
+            </div>
+ 
+            <div class="space-y-4 relative z-10">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] text-gray-400 block mb-1 uppercase">Gender</label>
+                        <select id="genderInput"
+                            class="w-full bg-black border border-gray-700 text-white rounded-lg p-3 text-sm outline-none focus:border-yellow-600 appearance-none">
+                            <option value="male">男 (Male)</option>
+                            <option value="female">女 (Female)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 block mb-1 uppercase">Original Job</label>
+                        <input type="text" id="jobInput" placeholder="例: 苦逼设计师"
+                            class="w-full bg-black border border-gray-700 text-white rounded-lg p-3 text-sm outline-none focus:border-yellow-600">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-400 block mb-1 uppercase">API Key (DeepSeek/OpenAI)</label>
+                    <input type="text" id="apiKeyInput" placeholder="sk-a4c9e0a162024086b8d3fca50a0c6e2a"
+                        class="w-full bg-black border border-gray-700 text-white rounded-lg p-3 text-sm outline-none focus:border-yellow-600">
+                    <script>
+                        // 页面加载完成后执行
+                        window.addEventListener('load', function () {
+                            const input = document.getElementById('apiKeyInput');
+                            // 将 placeholder 的值设置为 input 的默认值
+                            input.value = input.placeholder;
+                        });
+                    </script>
+                </div>
+                <!-- 隐藏的高级设置 -->
+                <input type="text" id="apiBaseUrl" value="https://api.deepseek.com"
+                    class="w-full bg-transparent border-b border-gray-800 text-[10px] text-gray-700 p-1 text-center outline-none">
+            </div>
+ 
+            <button onclick="startGame()"
+                class="w-full bg-gradient-to-r from-yellow-700 to-yellow-600 text-white font-bold py-4 rounded-xl shadow-[0_4px_15px_rgba(202,138,4,0.3)] active:scale-95 transition-transform relative z-10">
+                开启第二人生 ➤
+            </button>
+        </div>
+    </div>
+ 
+    <!-- 2. 游戏主界面 -->
+    <div id="gameUI" class="hidden flex-col h-full w-full max-w-lg mx-auto relative overflow-hidden bg-[#0a0a0a]">
+ 
+        <!-- A. 顶部状态栏 -->
+        <header class="flex-none bg-gray-900/90 border-b border-gray-800 p-3 z-30 backdrop-blur-md">
+            <div class="flex justify-between items-center mb-3">
+                <div class="flex items-center gap-3" onclick="toggleProfile()">
+                    <div class="relative">
+                        <div class="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-yellow-500 to-transparent">
+                            <img id="headerAvatar" src="" class="w-full h-full rounded-full object-cover bg-gray-800">
+                        </div>
+                        <!-- 徽章提示红点 -->
+                        <div id="badgeDot"
+                            class="hidden absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-gray-900">
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-gray-500 uppercase">Total Assets</div>
+                        <div id="moneyDisplay" class="font-mono font-bold text-lg text-yellow-400 leading-none">
+                            10,000,000</div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="text-[10px] text-gray-500 uppercase">Age</div>
+                    <div id="ageDisplay" class="font-serif font-bold text-xl text-white leading-none">22</div>
+                </div>
+            </div>
+ 
+            <!-- 属性条 -->
+            <div class="grid grid-cols-3 gap-3">
+                <div class="space-y-1">
+                    <div class="flex justify-between text-[10px] text-gray-400"><span>快乐</span><span
+                            id="valHappy">80</span></div>
+                    <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
+                        <div id="barHappy" class="h-full bg-pink-500 transition-all duration-700" style="width: 80%">
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <div class="flex justify-between text-[10px] text-gray-400"><span>健康</span><span
+                            id="valHealth">90</span></div>
+                    <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
+                        <div id="barHealth" class="h-full bg-emerald-500 transition-all duration-700"
+                            style="width: 90%"></div>
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <div class="flex justify-between text-[10px] text-gray-400"><span>名声</span><span
+                            id="valRep">50</span></div>
+                    <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
+                        <div id="barRep" class="h-full bg-blue-500 transition-all duration-700" style="width: 50%">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+ 
+        <!-- B. 剧情流 (自适应滚动) -->
+        <main id="storyContainer" class="flex-1 min-h-0 overflow-y-auto p-4 relative scroll-smooth bg-[#0a0a0a]">
+            <div class="text-center text-gray-800 text-xs mt-6 mb-8 font-mono">--- TIMELINE STARTED ---</div>
+            <div id="storyLog" class="space-y-6"></div>
+            <!-- 底部垫高 -->
+            <div class="h-32 w-full flex-shrink-0"></div>
+        </main>
+ 
+        <!-- 浮动特效层 -->
+        <div id="floatOverlay" class="absolute inset-0 pointer-events-none overflow-hidden z-40"></div>
+ 
+        <!-- C. 底部操作栏 -->
+        <footer class="flex-none bg-gray-900 border-t border-gray-800 p-4 z-30 pb-8">
+            <div id="loadingBox" class="hidden w-full py-4 text-center">
+                <span class="text-yellow-600 text-xs font-mono animate-pulse tracking-widest">>>> AI IS
+                    PLOTTING...</span>
+            </div>
+            <div id="choicesBox" class="flex flex-col gap-2.5 max-h-[45vh] overflow-y-auto no-scrollbar"></div>
+        </footer>
+ 
+        <!-- 个人中心 / 里程碑抽屉 -->
+        <div id="profileDrawer"
+            class="absolute inset-0 bg-black/95 z-50 hidden flex-col items-center justify-center p-6 backdrop-blur-md transition-opacity"
+            onclick="toggleProfile()">
+            <div class="w-full max-w-sm bg-gray-900 p-6 rounded-2xl border border-gray-700 shadow-2xl"
+                onclick="event.stopPropagation()">
+                <div class="text-center mb-6">
+                    <img id="drawerAvatar" src=""
+                        class="w-24 h-24 rounded-full mx-auto border-2 border-yellow-600 mb-3 shadow-[0_0_15px_rgba(202,138,4,0.3)]">
+                    <h2 class="text-xl font-bold text-white" id="drawerJob">无业</h2>
+                </div>
+ 
+                <div class="mb-2 text-xs text-gray-500 uppercase tracking-widest font-bold">Milestones / 成就</div>
+                <div id="milestoneList"
+                    class="flex flex-wrap gap-2 max-h-48 overflow-y-auto bg-black/50 p-3 rounded-lg min-h-[100px] content-start">
+                    <!-- 动态插入徽章 -->
+                </div>
+ 
+                <div class="mt-6 text-center">
+                    <button onclick="toggleProfile()"
+                        class="text-gray-500 text-xs border border-gray-700 px-6 py-2 rounded-full hover:text-white hover:border-white transition">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+ 
+    <!-- 3. 结算小票 (Resume/Receipt) -->
+    <div id="endScreen"
+        class="hidden fixed inset-0 bg-gray-900 z-[70] overflow-y-auto flex items-start justify-center pt-10 pb-10">
+        <div class="receipt-bg text-black font-mono w-[90%] max-w-md shadow-2xl relative transform transition-all duration-700 translate-y-10 opacity-0 fade-in"
+            style="opacity:1; transform:translateY(0)">
+            <!-- 顶部锯齿 -->
+            <div class="jagged-edge absolute -top-4 left-0 transform rotate-180"></div>
+ 
+            <div class="p-6 pb-10">
+                <div class="text-center border-b-2 border-black pb-4 mb-4">
+                    <h2 class="text-3xl font-black uppercase tracking-tighter">人生结算单</h2>
+                    <p class="text-[10px] text-gray-500 mt-1">LIFE SIMULATION OFFICIAL RECEIPT</p>
+                    <div class="text-right text-[10px] mt-2">DATE: 2026/01/18</div>
+                </div>
+ 
+                <div class="space-y-2 text-xs mb-6 font-bold text-gray-800">
+                    <div class="flex justify-between"><span>NAME</span><span id="endName">---</span></div>
+                    <div class="flex justify-between"><span>JOB</span><span id="endJob">---</span></div>
+                    <div class="flex justify-between"><span>AGE</span><span id="endAge">---</span></div>
+                    <div class="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-gray-400">
+                        <span>ENDING</span>
+                        <span class="bg-black text-white px-2 py-0.5 text-sm" id="endTitle">---</span>
+                    </div>
+                </div>
+ 
+                <div class="mb-6">
+                    <div class="text-[10px] font-bold border-b border-black mb-2">TIMELINE LOG</div>
+                    <ul id="endTimeline" class="text-[10px] space-y-1.5 leading-tight text-gray-600 list-none"></ul>
+                </div>
+ 
+                <div class="border-t-4 border-black pt-4 mb-6">
+                    <div class="flex justify-between items-end">
+                        <span class="text-xs font-bold">TOTAL ASSETS</span>
+                        <span class="text-xl font-black" id="endMoney">¥0</span>
+                    </div>
+                    <div class="flex justify-between items-end mt-1">
+                        <span class="text-xs font-bold">SCORE</span>
+                        <span class="text-xl font-black" id="endRank">C</span>
+                    </div>
+                </div>
+ 
+                <!-- 模拟条形码区域 -->
+                <div class="text-center opacity-80">
+                    <div class="h-8 bg-current w-3/4 mx-auto mb-1"
+                        style="mask: repeating-linear-gradient(90deg, #000 0, #000 2px, transparent 2px, transparent 4px);">
+                    </div>
+                    <p class="text-[8px]">THANK YOU FOR PLAYING</p>
+                </div>
+            </div>
+ 
+            <!-- 底部锯齿 -->
+            <div class="jagged-edge absolute -bottom-4 left-0"></div>
+        </div>
+ 
+        <div class="fixed bottom-6 w-full px-6 max-w-md">
+            <button onclick="location.reload()"
+                class="w-full bg-yellow-500 text-black font-bold py-4 rounded-xl shadow-xl hover:bg-yellow-400 transition">
+                重启人生 (RESTART)
+            </button>
+        </div>
+    </div>
+ 
+    <script>
+        // --- 游戏配置与事件库 ---
+        const CONFIG = { avatarHost: "https://api.dicebear.com/9.x/notionists/svg" };
+ 
+        const GLOBAL_EVENTS = [
+            { id: "scam", text: "【杀猪盘】你在网上认识的'完美伴侣'突然失联，你的投资账户无法提现..." },
+            { id: "health_crisis", text: "【健康暴雷】因为长期的纵欲和熬夜，你在夜店突然晕倒，被送进了ICU..." },
+            { id: "tax_audit", text: "【税务稽查】税务局突然上门，质疑你巨额财产的来源，冻结了你的部分资产..." },
+            { id: "relative", text: "【亲戚吸血】你八竿子打不着的远房表舅带着全家老小来投奔你，赖在你的别墅不走..." },
+            { id: "market_crash", text: "【金融海啸】全球股市熔断，你持有的科技股和虚拟货币一夜归零..." },
+            { id: "blackmail", text: "【桃色陷阱】你昨晚带回家的伴侣，第二天声称未成年并拍了照，向你勒索巨款..." }
+        ];
+ 
+        let state = {
+            money: 100000000, happiness: 80, health: 90, reputation: 50, age: 22,
+            gender: 'male', originalJob: '',
+            milestones: [], timeline: [], history: []
+        };
+        let api = { key: '', url: '' };
+ 
+        // --- 核心逻辑 ---
+ 
+        function startGame() {
+            const job = document.getElementById('jobInput').value.trim();
+            const key = document.getElementById('apiKeyInput').value.trim();
+            let url = document.getElementById('apiBaseUrl').value.trim();
+ 
+            if (!job || !key) { alert("请完善信息！"); return; }
+            if (url.endsWith('/')) url = url.slice(0, -1);
+            if (!url.endsWith('/v1')) url += '/v1';
+ 
+            state.originalJob = job;
+            state.gender = document.getElementById('genderInput').value;
+            api = { key, url };
+ 
+            const modal = document.getElementById('initModal');
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.style.display = 'none';
+                const gameUI = document.getElementById('gameUI');
+                gameUI.classList.remove('hidden');
+                gameUI.classList.add('flex');
+ 
+                updateUI();
+                document.getElementById('drawerJob').innerText = job;
+ 
+                initGameStory();
+            }, 500);
+        }
+ 
+        function initGameStory() {
+            const genderDesire = state.gender === 'male'
+                ? "随机生成'包养嫩模、去夜总会、追求女大学生、购买豪车'等满足男性虚荣与色欲的选项。"
+                : "随机生成'包养小奶狗、点男模、购买爱马仕、整容医美'等满足女性虚荣与情感需求的选项。";
+ 
+            // 修正后的 Prompt：强制要求数值准确性
+            const systemPrompt = `
+你是一个"富豪模拟器"的游戏引擎。
+玩家设定：${state.gender}，22岁，原职业：${state.originalJob}，初始中奖1个亿。
+ 
+**核心指令**：
+1. **释放人性贪婪**：${genderDesire}
+2. **数值精确计算（重要）**：
+   - 涉及金额变动时，diff.money 必须是**纯数字整数**（单位：元）。
+   - **严禁**使用 "w", "万", "k" 等后缀。
+   - 例如：买房扣除500万，返回 -5000000。去夜店消费5万，返回 -50000。
+   - 必须基于常识定价：豪宅500万-1亿，豪车100万-2000万，夜店消费1万-50万。
+3. **JSON格式**：必须返回严格JSON。
+4. **选项要求**：options 数组必须包含 3-4 个选项。
+5. **初始选择**：初始选择建议从「辞职旅游」、「买豪车/奢侈品」、「夜总会挥霍」、「投资/存银行/买房」和自己兴趣相关的消费开始，用户随着时间一步一步陷入人性陷阱
+ 
+JSON结构：
+{
+    "story": "剧情(100字，黑色幽默风格)",
+    "timeline": "简历摘要(如: 23岁，沉迷夜店挥霍50万)",
+    "diff": { "money": 0, "happiness": 0, "health": 0, "reputation": 0, "age": 0.5 },
+    "new_milestones": [],
+    "options": ["选项A", "选项B", "选项C"],
+    "game_over": false,
+    "ending": { "title": "...", "rank": "B" }
+}
+`;
+            state.history = [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: "游戏开始。第一幕：今早你兑换了昨天一亿的彩票大奖，看着银行卡余额，我产生了大胆的想法。" }
+            ];
+            fetchTurn();
+        }
+ 
+        async function fetchTurn(choice = null) {
+            setLoading(true);
+ 
+            if (choice) state.history.push({ role: "user", content: `我选择：${choice}` });
+ 
+            // 注入当前资产上下文，防止 AI 产生幻觉
+            // 这一步非常关键：让 AI 知道玩家现在到底有多少钱
+            state.history.push({
+                role: "system",
+                content: `[系统监测] 当前余额：${state.money}元。健康：${state.health}。若余额不足以支付选项，请触发破产或借贷剧情。`
+            });
+ 
+            // 导演机制：随机注入强制事件 (20%概率)
+            let injectedEvent = null;
+            if (Math.random() < 0.20 && state.money > 0 && !choice?.includes("游戏开始")) {
+                const evt = GLOBAL_EVENTS[Math.floor(Math.random() * GLOBAL_EVENTS.length)];
+                injectedEvent = evt;
+                state.history.push({
+                    role: "system",
+                    content: `【强制事件触发】本回合发生了突发事件："${evt.text}"。请忽略之前的平稳发展，必须基于这个灾难事件编写本回合剧情和选项，并大幅扣除相应金钱或属性。`
+                });
+            }
+ 
+            try {
+                const res = await fetch(`${api.url}/chat/completions`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${api.key}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: "deepseek-chat", // 适配深度求索 API
+                        messages: state.history,
+                        temperature: 0.9,
+                        response_format: { type: "json_object" }
+                    })
+                });
+ 
+                const data = await res.json();
+                let content = data.choices[0].message.content.replace(/```json|```/g, '').trim();
+                const gameData = JSON.parse(content);
+ 
+                // 记录 AI 回复（剔除系统注入的临时指令，保持历史干净）
+                // 这里简单处理，直接push content
+                state.history.push({ role: "assistant", content: content });
+ 
+                processTurn(gameData, injectedEvent);
+ 
+            } catch (e) {
+                console.error(e);
+                appendStory(`<span class="text-red-500">连接中断...请检查网络或API Key</span>`);
+            } finally {
+                setLoading(false);
+            }
+        }
+ 
+        function processTurn(data, evt) {
+            // 更新数值
+            if (data.diff) applyDiff(data.diff);
+ 
+            // 记录时间线
+            if (data.timeline) state.timeline.push(data.timeline);
+ 
+            // 徽章系统
+            if (data.new_milestones) {
+                data.new_milestones.forEach(m => {
+                    if (!state.milestones.includes(m)) {
+                        state.milestones.push(m);
+                        addMilestoneUI(m);
+                    }
+                });
+            }
+            if (evt && !state.milestones.includes(evt.id)) {
+                addMilestoneUI(evt.id);
+            }
+ 
+            // 更新 UI
+            updateUI();
+ 
+            // 剧情渲染
+            let storyHtml = data.story;
+            if (evt) {
+                storyHtml = `<strong class="text-red-400 block mb-2">[突发] ${evt.text.split('】')[0]}】</strong>${data.story}`;
+            }
+            appendStory(storyHtml);
+ 
+            // 检查结局
+            if (data.game_over || state.money < -500000 || state.health <= 0) {
+                setTimeout(() => showEnding(data.ending || { title: "荒唐一生", rank: "C" }), 2000);
+            } else {
+                renderOptions(data.options || ["静观其变"]);
+            }
+        }
+ 
+        function applyDiff(diff) {
+            // Money Text - 强制转换为数字，防止字符串拼接错误
+            const moneyChange = Number(diff.money) || 0;
+ 
+            if (moneyChange !== 0) {
+                state.money += moneyChange;
+                const text = moneyChange > 0 ? `+¥${formatShort(moneyChange)}` : `-¥${formatShort(Math.abs(moneyChange))}`;
+                const color = moneyChange > 0 ? 'text-green-400' : 'text-red-500';
+                showFloat(text, color);
+            }
+ 
+            // Stats
+            const update = (k, v, color) => {
+                const val = Number(v) || 0;
+                if (!val) return;
+                state[k] = Math.min(100, Math.max(0, state[k] + val));
+                showFloat(`${k === 'happiness' ? '乐' : (k === 'health' ? '健' : '名')} ${val > 0 ? '+' : ''}${val}`, color);
+            };
+            update('happiness', diff.happiness, 'text-pink-400');
+            update('health', diff.health, 'text-emerald-400');
+            update('reputation', diff.reputation, 'text-blue-400');
+            state.age += (Number(diff.age) || 0);
+        }
+ 
+        function updateUI() {
+            // Header
+            document.getElementById('moneyDisplay').innerText = formatMoney(state.money);
+            document.getElementById('moneyDisplay').className = state.money < 0 ? "font-mono font-bold text-lg text-red-500" : "font-mono font-bold text-lg text-yellow-400";
+            document.getElementById('ageDisplay').innerText = Math.floor(state.age);
+ 
+            document.getElementById('valHappy').innerText = Math.floor(state.happiness);
+            document.getElementById('barHappy').style.width = state.happiness + "%";
+            document.getElementById('valHealth').innerText = Math.floor(state.health);
+            document.getElementById('barHealth').style.width = state.health + "%";
+            document.getElementById('valRep').innerText = Math.floor(state.reputation);
+            document.getElementById('barRep').style.width = state.reputation + "%";
+ 
+            // Avatar Logic
+            let seed = `${state.gender}-${Math.floor(state.age / 5)}`;
+            if (state.money > 50000000) seed += "-rich";
+            if (state.money < 0) seed += "-poor";
+            if (state.milestones.includes('jail')) seed = "jail";
+ 
+            const url = `${CONFIG.avatarHost}?seed=${seed}&backgroundColor=b6e3f4,c0aede,ffdfbf`;
+            document.getElementById('headerAvatar').src = url;
+            document.getElementById('drawerAvatar').src = url;
+        }
+ 
+        function appendStory(html) {
+            const container = document.getElementById('storyLog');
+            const div = document.createElement('div');
+            div.className = "bg-[#111] border-l-2 border-yellow-700 p-4 rounded-r-xl text-sm md:text-base leading-relaxed text-gray-300 shadow-md fade-in";
+            div.innerHTML = html;
+            container.appendChild(div);
+            scrollToBottom();
+        }
+ 
+        function scrollToBottom() {
+            const main = document.getElementById('storyContainer');
+            setTimeout(() => {
+                main.scrollTo({ top: main.scrollHeight, behavior: 'smooth' });
+            }, 100);
+        }
+ 
+        function renderOptions(opts) {
+            const box = document.getElementById('choicesBox');
+            box.innerHTML = '';
+            opts.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left bg-[#151515] p-4 rounded-xl text-sm text-gray-200 border border-gray-800 active:bg-yellow-800 active:border-yellow-500 transition slide-up shadow-sm group";
+                btn.innerHTML = `<span class="text-yellow-700 group-hover:text-yellow-500 mr-2">➤</span>${opt}`;
+                btn.onclick = () => fetchTurn(opt);
+                box.appendChild(btn);
+            });
+        }
+ 
+        function showFloat(text, color) {
+            const overlay = document.getElementById('floatOverlay');
+            const el = document.createElement('div');
+            el.className = `absolute text-2xl font-black ${color} float-anim drop-shadow-md z-50`;
+            el.style.left = (20 + Math.random() * 60) + '%';
+            el.style.top = (40 + Math.random() * 20) + '%';
+            el.innerText = text;
+            overlay.appendChild(el);
+            setTimeout(() => el.remove(), 1500);
+        }
+ 
+        const BADGE_ICONS = {
+            'married': '💍 结婚', 'jail': '⛓️ 铁窗', 'bankrupt': '📉 破产',
+            'luxury_car': '🏎️ 豪车', 'house': '🏠 豪宅', 'scam': '🐷 被骗',
+            'sugar_daddy': '💋 包养', 'charity': '❤️ 慈善', 'ceo': '💼 总裁'
+        };
+ 
+        function addMilestoneUI(key) {
+            document.getElementById('badgeDot').classList.remove('hidden');
+            const list = document.getElementById('milestoneList');
+            const label = BADGE_ICONS[key] || ('🏆 ' + key);
+            const el = document.createElement('span');
+            el.className = "inline-flex items-center px-2 py-1 bg-yellow-900/40 border border-yellow-700 text-yellow-100 text-xs rounded pop-in";
+            el.innerText = label;
+            list.appendChild(el);
+        }
+ 
+        function showEnding(endData) {
+            const screen = document.getElementById('endScreen');
+            document.getElementById('gameUI').style.display = 'none';
+            screen.classList.remove('hidden');
+            screen.classList.add('flex');
+ 
+            document.getElementById('endName').innerText = state.gender === 'male' ? 'Mr. Player' : 'Ms. Player';
+            document.getElementById('endJob').innerText = state.originalJob;
+            document.getElementById('endAge').innerText = Math.floor(state.age);
+            document.getElementById('endTitle').innerText = endData.title;
+            document.getElementById('endMoney').innerText = "¥" + formatMoney(state.money);
+            document.getElementById('endRank').innerText = endData.rank || "C";
+ 
+            const ul = document.getElementById('endTimeline');
+            state.timeline.slice(-10).forEach(t => {
+                const li = document.createElement('li');
+                li.innerText = "> " + t;
+                ul.appendChild(li);
+            });
+        }
+ 
+        // Helpers
+        function toggleProfile() {
+            const d = document.getElementById('profileDrawer');
+            if (d.classList.contains('hidden')) {
+                d.classList.remove('hidden'); d.classList.add('flex');
+                document.getElementById('badgeDot').classList.add('hidden');
+            } else {
+                d.classList.add('hidden'); d.classList.remove('flex');
+            }
+        }
+        function setLoading(b) {
+            const l = document.getElementById('loadingBox');
+            const c = document.getElementById('choicesBox');
+            if (b) { l.classList.remove('hidden'); c.classList.add('hidden'); }
+            else { l.classList.add('hidden'); c.classList.remove('hidden'); }
+        }
+ 
+        // 优化金额显示逻辑，避免 500w 显示成 500.0万 这种尴尬格式
+        function formatMoney(n) {
+            const absN = Math.abs(n);
+            if (absN >= 100000000) return (n / 100000000).toFixed(2) + "亿"; // 1亿以上
+            if (absN >= 10000) return (n / 10000).toFixed(1) + "万";    // 1万以上
+            return n.toLocaleString();                                  // 1万以下显示全额
+        }
+ 
+        function formatShort(n) {
+            if (n >= 100000000) return (n / 100000000).toFixed(1) + "亿";
+            if (n >= 10000) return (n / 10000).toFixed(0) + "万";
+            return n;
+        }
+    </script>
+</body>
+ 
+</html>
