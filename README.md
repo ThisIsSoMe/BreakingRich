@@ -4,6 +4,10 @@
 
 ## 🎮 项目概述
 
+**预览（游戏内截图）**
+![游戏内截图](pics/preview2.png)
+![游戏内截图](pics/preview3.png)
+
 **BreakingRich** 是一款基于DeepSeek AI驱动的富豪人生模拟文字冒险游戏。玩家从一个中奖1亿元的天降横财开始，在欲望与理性的抉择中体验富豪人生的起起落落。
 
 ### 核心特色
@@ -153,7 +157,8 @@ function applyDiff(diff) {
 - **DeepSeek**: 提供强大的AI对话能力
 - **Tailwind CSS**: 优秀的CSS框架
 - **DiceBear**: 头像生成服务
-
+- **Gemini3 pro**: 代码生成
+- **GPT5**: 文案建议
 ---
 
 **体验富豪人生，探寻人性边界。谨慎选择，你的每一个决定都将书写不同的命运篇章。**
