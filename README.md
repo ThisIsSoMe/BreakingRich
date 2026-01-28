@@ -4,11 +4,12 @@
 
 ## 🎮 项目概述
 
-**预览（游戏内截图）**
+### 预览（游戏内截图）
+
 <img src="pics/preview2.png" width="400" alt="游戏内截图">
 <img src="pics/preview3.png" width="400" alt="游戏内截图">
 
-**BreakingRich** 是一款基于DeepSeek AI驱动的富豪人生模拟文字冒险游戏。玩家从一个中奖1亿元的天降横财开始，在欲望与理性的抉择中体验富豪人生的起起落落。
+**BreakingRich** 是一款基于DeepSeek AI驱动的富豪人生模拟文字冒险游戏。玩家从一个中奖1亿元的天降横财开始，在欲望与理性的抉择中体验富豪人生的起起落落。公网地址：https://11te89ss79055.vicp.fun/
 
 ### 核心特色
 - 🤖 **AI驱动剧情**: 基于DeepSeek/OpenAI API的智能剧情生成
